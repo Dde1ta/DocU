@@ -9,41 +9,47 @@ Format :-
     'subject':<subject: None>,
     'creator':<creator: None>,
     'producer':<producer: None>,
-    'creation_date':<date: None>,
     'length': <int: number of pages>,
-    'header':
+    'text':
     {
-        'text':<text of header>,
-        'image':<image in the header>
-    },
-    'pages':
+        '-1':<Header>
+        '0':<str>
+    }
+    'images'
     {
-        '0':
-        {
-            'text':<text in the page as string>,
-            'images':<IMAGE object of python of the images in the page>
-        } so on
-    },
-    'footer':{
-        'text':<text of header>,
-        'image':<image in the header>
+        '-1': <Header>
+        '0': <Image bytes to base64>
     }
 }
 """
-
+from collections import defaultdict
 
 from pypdf import PdfReader
-from pypdf._page import VirtualListImages
+from pypdf._page import VirtualListImages, ImageFile
 from json import JSONEncoder
+import base64
 
 
 class Pdf:
 
     def __init__(self, location):
+        self.name = location.split('/')[-1][:-4]
         self.pdf = PdfReader(location)
         self.parts = []
+        self.images_hash = defaultdict(bool)
 
-    def get_page(self, page_number: int) -> str:
+    def get_page(self, page_number: int) -> dict:
+        page = {'text': self.get_page_text(page_number)}
+        images_list = self.get_page_images(page_number)
+        image = {}
+        for x in images_list:
+            image[x.name] = self.serialize_image(x)
+
+        page['images'] = image
+
+        return page
+
+    def get_page_text(self, page_number: int) -> str:
         return self.pdf.pages[page_number].extract_text()
 
     def get_pdf_meta_data(self) -> dict[str, str]:
@@ -55,11 +61,38 @@ class Pdf:
             'subject': meta.subject,
             'creator': meta.creator,
             'producer': meta.producer,
-            'creation_date': meta.creation_date,
         }
 
     def get_pdf(self) -> str:
-        ...
+        to_json = self.get_pdf_meta_data()
+        to_json['name'] = self.name
+        to_json['pages'] = {}
+
+        for i in range(self.pdf.get_num_pages()):
+            to_json['pages'][i] = self.get_page(i)
+
+
+        converter = JSONEncoder()
+        converted = converter.encode(to_json)
+
+        return converted
+
+    def serialize_image(self, image: ImageFile) -> dict:
+        name = image.name
+        byte_array = image.image.tobytes()
+
+        byte_encoded = base64.urlsafe_b64encode(byte_array).decode("utf-8")
+
+        if self.images_hash[byte_encoded]:
+
+            self.images_hash[byte_encoded] = True
+
+            return {
+                "name": name,
+                "data": byte_encoded
+            }
+        else:
+            return {}
 
     def get_page_images(self, page_number: int) -> VirtualListImages:
         page = self.pdf.pages[page_number]
@@ -68,14 +101,23 @@ class Pdf:
 
         return images
 
+    def close(self):
+        self.pdf.close()
+
 
 if __name__ == "__main__":
     # testing the reader
 
     loc = ""
 
-    pdf = Pdf("data/Sample 1.pdf")
+    pdf = Pdf("data/Sample 4.pdf")
 
-    s = pdf.get_page_images(1)
+    file = open("dataOf4.json", 'w')
 
-    pdf.pdf.close()
+    s = pdf.get_pdf()
+
+    file.write(s)
+
+    file.close()
+
+    pdf.close()
