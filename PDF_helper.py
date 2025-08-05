@@ -63,14 +63,35 @@ class Pdf:
             'producer': meta.producer,
         }
 
+    def get_pdf_text(self) -> dict:
+        texts = {}
+
+        for i in range(self.pdf.get_num_pages()):
+            texts[i] = self.get_page_text(i)
+            print(i)
+
+        return texts
+
+    def get_pdf_images(self) -> dict:
+        images = {}
+        for i in range(self.pdf.get_num_pages()):
+            print(i)
+            new_image = self.get_page_images(i)
+            for x in new_image:
+                coded = self.serialize_image(x)
+                if coded == {}:
+                    continue
+                else:
+                    images[i] = coded
+        return images
+
     def get_pdf(self) -> str:
         to_json = self.get_pdf_meta_data()
         to_json['name'] = self.name
-        to_json['pages'] = {}
 
-        for i in range(self.pdf.get_num_pages()):
-            to_json['pages'][i] = self.get_page(i)
+        to_json['text'] = self.get_pdf_text()
 
+        to_json['images'] = self.get_pdf_images()
 
         converter = JSONEncoder()
         converted = converter.encode(to_json)
@@ -83,7 +104,7 @@ class Pdf:
 
         byte_encoded = base64.urlsafe_b64encode(byte_array).decode("utf-8")
 
-        if self.images_hash[byte_encoded]:
+        if not self.images_hash[byte_encoded]:
 
             self.images_hash[byte_encoded] = True
 
@@ -110,9 +131,9 @@ if __name__ == "__main__":
 
     loc = ""
 
-    pdf = Pdf("data/Sample 4.pdf")
+    pdf = Pdf("data/Sample 1.pdf")
 
-    file = open("dataOf4.json", 'w')
+    file = open("tests/dataOf1.json", 'w')
 
     s = pdf.get_pdf()
 
