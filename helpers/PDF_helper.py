@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     pdf = Pdf("data/Sample 1.pdf")
 
-    file = open("tests/dataOf1.json", 'w')
+    file = open("../tests/dataOf1.json", 'w')
 
     s = pdf.get_pdf()
 
