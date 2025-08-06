@@ -63,18 +63,31 @@ class Pdf:
             'producer': meta.producer,
         }
 
-    def get_pdf_text(self) -> dict:
+    def get_pdf_text(self, range_to_scan: list[int]=None) -> dict:
+        if range_to_scan is not None:
+            i = range_to_scan[0]
+            j = range_to_scan[1]
+        else:
+            i = 1,
+            j = self.pdf.get_num_pages()
         texts = {}
 
-        for i in range(self.pdf.get_num_pages()):
+        for i in range(i - 1, j):
             texts[i] = self.get_page_text(i)
             print(i)
 
         return texts
 
-    def get_pdf_images(self) -> dict:
+    def get_pdf_images(self, range_to_scan: list[int]=None) -> dict:
+        if range_to_scan is not None:
+            i = range_to_scan[0]
+            j = range_to_scan[1]
+        else:
+            i = 1,
+            j = self.pdf.get_num_pages()
+
         images = {}
-        for i in range(self.pdf.get_num_pages()):
+        for i in range(i - 1, j):
             print(i)
             new_image = self.get_page_images(i)
             for x in new_image:
@@ -85,13 +98,14 @@ class Pdf:
                     images[i] = coded
         return images
 
-    def get_pdf(self) -> str:
+    def get_pdf(self, range_to_scan: list[int] =None) -> str:
+
         to_json = self.get_pdf_meta_data()
         to_json['name'] = self.name
 
-        to_json['text'] = self.get_pdf_text()
+        to_json['text'] = self.get_pdf_text(range_to_scan)
 
-        to_json['images'] = self.get_pdf_images()
+        to_json['images'] = self.get_pdf_images(range_to_scan)
 
         converter = JSONEncoder()
         converted = converter.encode(to_json)
